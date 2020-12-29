@@ -1,0 +1,1 @@
+Repo to get games from https://www.chess.com/news/view/published-data-api
