@@ -1,9 +1,13 @@
+import os 
 import io
 import chess
 import chess.pgn
 import chess.svg
 import requests
 from IPython.display import display
+import logging
+
+logger = logging.getLogger(__name__)
 
 GMPlayersUrl = 'https://api.chess.com/pub/titled/GM'
 r = requests.get(GMPlayersUrl)
@@ -18,15 +22,24 @@ for player in j['players']:
         raise Exception('url does not return: ', monthlyArchivesUrl, ' with message ', r.text)
     games = r.json()
 
-    for game in games['archives']:
-        r = requests.get(game)
+    for gamesFromTournament in games.get('archives'):
+        r = requests.get(gamesFromTournament)
         if not r.ok:
-            raise Exception('url does not return: ', game, ' with message ', r.text)
-        gameUnparsed = r.json()['games'][0]['pgn']
-        pgn = io.StringIO(gameUnparsed)
-        parsed = chess.pgn.read_game(pgn)
-        board = parsed.board()
-
-        display(chess.svg.board(board))
-        break
-    break
+            raise Exception('url does not return: ', gamesFromTournament, ' with message ', r.text)
+        # print(r.json().get('games'))
+        gamesFromTournamentJSON = r.json().get('games')
+        
+        for game in gamesFromTournamentJSON:
+            gamePGN = game.get('pgn')
+            pgn = io.StringIO(gamePGN)
+            gameParsed = chess.pgn.read_game(pgn)
+            path = '/Users/VAZ3773/Desktop/chess_downloader_api/fetch_games/saved_games'
+            if gameParsed and gameParsed.headers:
+                file = gameParsed.headers.get('Date') + '_' + gameParsed.headers.get('White') + '_' + gameParsed.headers.get('Black')
+                print(gameParsed.headers.get('Date') + '_' + gameParsed.headers.get('White') + '_' + gameParsed.headers.get('Black'))
+                if len(gamePGN) == 0:
+                    print('game pgn is zero ', game) 
+                if not gamePGN:
+                    print('game pgn is nonexistent ', game)
+                with open(os.path.join(path, file), 'w') as fp:
+                    fp.write(gamePGN)
